@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deen - Ramadan 2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&family=Amiri&display=swap');
+        body { font-family: 'Hind Siliguri', sans-serif; background-color: #F8FAFC; overflow-x: hidden; }
+        .header-gradient { background: linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%); border-bottom-left-radius: 40px; border-bottom-right-radius: 40px; overflow: hidden; }
+        .page { display: none; min-height: 100vh; padding-bottom: 120px; }
+        .page.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .font-arabic { font-family: 'Amiri', serif; text-align: right; direction: rtl; }
+        .nav-btn { color: #64748b; transition: all 0.3s ease; }
+        .nav-active { color: #4338ca !important; background: #f0f2ff; border-radius: 15px; }
+        .main-card { margin-top: -70px; position: relative; z-index: 20; }
+        
+        /* Sun/Moon Tracker Styles */
+        .sky-path { position: absolute; top: 20%; left: 10%; right: 10%; height: 100px; border-radius: 50% 50% 0 0; border-top: 1px dashed rgba(255,255,255,0.2); }
+        #celestial-body { position: absolute; font-size: 24px; filter: drop-shadow(0 0 10px white); transition: all 1s ease; top: -12px; }
+        
+        #custom-toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 15px; padding: 16px; position: fixed; z-index: 200; left: 50%; bottom: 100px; transform: translateX(-50%); font-size: 14px; }
+        #custom-toast.show { visibility: visible; animation: fadeinout 3s; }
+        @keyframes fadeinout { 0%, 100% { opacity: 0; } 15%, 85% { opacity: 1; } }
+    </style>
+</head>
+<body class="max-w-md mx-auto shadow-2xl bg-white relative">
+
+    <audio id="surah-audio" preload="auto"></audio>
+    <div id="custom-toast">বার্তা</div>
+
+    <div id="page-home" class="page active">
+        <div class="header-gradient pt-8 pb-24 px-6 text-white text-center relative">
+            <div class="sky-path">
+                <div id="celestial-body"><i class="fa-solid fa-sun text-yellow-300"></i></div>
+            </div>
+
+            <h1 class="text-2xl font-black italic tracking-tighter mb-4 relative z-10">DEEN</h1>
+            <div class="mb-4 inline-block px-6 py-2 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 relative z-10">
+                <p id="countdown-label" class="text-[10px] uppercase font-bold tracking-widest opacity-80">লোড হচ্ছে...</p>
+                <p id="live-timer" class="text-3xl font-black tracking-widest">00:00:00</p>
+            </div>
+            <div class="space-y-1 relative z-10">
+                <p id="current-date-hijri" class="text-lg font-bold text-orange-300">লোড হচ্ছে...</p>
+                <p class="text-[10px] opacity-70"><i class="fa-solid fa-location-dot mr-1"></i>লক্ষ্মীপুর, বাংলাদেশ</p>
+            </div>
+        </div>
+
+        <div class="px-5 main-card">
+            <div class="bg-white p-6 rounded-[30px] shadow-xl border border-gray-100">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 text-center">
+                        <p class="text-[10px] font-bold text-blue-500 uppercase">সেহরি শেষ</p>
+                        <p id="suhur-time" class="font-black text-blue-900 text-xl">--:--</p>
+                    </div>
+                    <div class="bg-orange-50 p-4 rounded-2xl border border-orange-100 text-center">
+                        <p class="text-[10px] font-bold text-orange-600 uppercase">ইফতার</p>
+                        <p id="iftar-time" class="font-black text-orange-900 text-xl">--:--</p>
+                    </div>
+                </div>
+                <div class="mt-6 border-t pt-4 flex justify-between items-center px-2">
+                    <div>
+                        <p class="text-gray-400 text-[10px] uppercase font-bold">পরবর্তী নামাজ</p>
+                        <h2 id="next-prayer-name" class="text-xl font-black text-slate-800">লোড হচ্ছে</h2>
+                    </div>
+                    <h2 id="next-prayer-time" class="text-2xl font-black text-indigo-600">--:--</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-quran" class="page px-5 pt-8">
+        <h2 class="text-2xl font-black mb-6">আল-কুরআন</h2>
+        <div id="surah-list" class="space-y-3 pb-10"></div>
+    </div>
+
+    <div id="page-tasbih" class="page px-5 pt-8 text-center">
+        <h2 class="text-2xl font-black mb-10 text-slate-800">ডিজিটাল তসবিহ</h2>
+        <div class="flex flex-col items-center justify-center space-y-8 mt-10">
+            <div onclick="countTasbih()" class="w-[180px] h-[180px] border-8 border-indigo-600 rounded-full flex items-center justify-center cursor-pointer bg-white shadow-xl active:scale-95 transition-all">
+                <span id="tasbih-count" class="text-6xl font-black text-indigo-600">0</span>
+            </div>
+            <button onclick="resetTasbih()" class="bg-red-50 text-red-500 px-10 py-3 rounded-2xl font-bold border border-red-100">রিসেট</button>
+        </div>
+    </div>
+
+    <div id="page-duas" class="page px-5 pt-8">
+        <h2 class="text-2xl font-black mb-6">দোয়া ও জিকির</h2>
+        <div class="space-y-4 pb-10">
+            <div class="bg-indigo-50 p-5 rounded-[25px] border border-indigo-100">
+                <p class="font-bold text-indigo-800 mb-2">রোজা রাখার নিয়ত (সেহরি)</p>
+                <p class="font-arabic text-xl mb-2">نَوَيْتُ اَنْ اَصُوْمَ غَدًا مِّنْ شَهْرِ رَمْضَانَ الْمُبَارَكِ فَرْضًا لَّكَ يَا اَللهُ فَتَقَبَّلْ مِنِّى اِنَّكَ اَنْتَ السَّمِيْعُ الْعَلِيْمُ</p>
+                <p class="text-xs text-gray-600 leading-relaxed">নাওয়াইতু আন আসুমা গাদাম মিন শাহরি রামাদানাল মুবারাকি ফারদাল্লাকা ইয়া আল্লাহু ফাতাকাব্বাল মিন্নি ইন্নাকা আনতাস সামিউল আলিম।</p>
+            </div>
+            <div class="bg-orange-50 p-5 rounded-[25px] border border-orange-100">
+                <p class="font-bold text-orange-800 mb-2">ইফতারের দোয়া</p>
+                <p class="font-arabic text-xl mb-2 text-right">اَللَّهُمَّ لَّكَ صُمْتُ وَعَلَى رِزْقِكَ اَفْطَرْتُ</p>
+                <p class="text-xs text-gray-600">আল্লাহুম্মা লাকা সুমতু ওয়া আলা রিজকিকা আফতারতু।</p>
+            </div>
+            <div class="bg-slate-50 p-5 rounded-[25px] border border-slate-200">
+                <p class="font-bold text-slate-800 mb-2">ঘুমানোর দোয়া</p>
+                <p class="font-arabic text-xl mb-2 text-right">اَللّٰهُمَّ بِاسْمِكَ اَمُوْتُ وَاَحْيٰى</p>
+                <p class="text-xs text-gray-600">আল্লাহুম্মা বিসমিকা আমুতু ওয়া আহ্ইয়া।</p>
+            </div>
+            <div class="bg-green-50 p-5 rounded-[25px] border border-green-100">
+                <p class="font-bold text-green-800 mb-2">বিপদ মুক্তির দোয়া (ইউনুস)</p>
+                <p class="font-arabic text-xl mb-2 text-right">لَآ اِلٰهَ اِلَّآ اَنْتَ سُبْحٰنَكَ اِنِّىْ كُنْتُ مِنَ الظّٰلِمِيْنَ</p>
+                <p class="text-xs text-gray-600">লা ইলাহা ইল্লা আন্তা সুবহানাকা ইন্নি কুনতু মিনায যলিমিন।</p>
+            </div>
+        </div>
+    </div>
+
+    <nav class="fixed bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-white/95 backdrop-blur-md rounded-[25px] flex justify-around items-center py-3 z-50 shadow-2xl border border-gray-100">
+        <button onclick="switchPage('home')" id="nav-home" class="nav-btn nav-active px-4 py-2"><i class="fa-solid fa-house-chimney"></i></button>
+        <button onclick="switchPage('quran')" id="nav-quran" class="nav-btn px-4 py-2"><i class="fa-solid fa-book-quran"></i></button>
+        <button onclick="switchPage('tasbih')" id="nav-tasbih" class="nav-btn px-4 py-2"><i class="fa-solid fa-fingerprint"></i></button>
+        <button onclick="switchPage('duas')" id="nav-duas" class="nav-btn px-4 py-2"><i class="fa-solid fa-hands-praying"></i></button>
+    </nav>
+
+    <script>
+        async function init() {
+            await fetchPrayerTimes();
+            updateSunTracker();
+            setInterval(updateLiveCountdown, 1000);
+            setInterval(updateSunTracker, 60000); // প্রতি মিনিটে আপডেট হবে
+        }
+
+        async function fetchPrayerTimes() {
+            try {
+                const res = await fetch('https://api.aladhan.com/v1/timingsByCity?city=Lakshmipur&country=Bangladesh&method=1');
+                const data = await res.json();
+                const t = data.data.timings;
+                document.getElementById('suhur-time').innerText = t.Fajr;
+                document.getElementById('iftar-time').innerText = t.Maghrib;
+                document.getElementById('current-date-hijri').innerText = `${data.data.date.hijri.day}ই ${data.data.date.hijri.month.en}, ${data.data.date.hijri.year} হিজরি`;
+                updateNextPrayer(t);
+            } catch (e) { console.error(e); }
+        }
+
+        function updateSunTracker() {
+            const now = new Date();
+            const hour = now.getHours();
+            const min = now.getMinutes();
+            const totalMin = (hour * 60) + min;
+            const celestial = document.getElementById('celestial-body');
+            
+            // সূর্যোদয় (৬টা) থেকে সূর্যাস্ত (১৮টা) পর্যন্ত সূর্যের অবস্থান
+            // বাকি সময় চাঁদের অবস্থান
+            let isDay = hour >= 6 && hour < 18;
+            let percent;
+            
+            if (isDay) {
+                percent = ((totalMin - 360) / 720) * 100;
+                celestial.innerHTML = '<i class="fa-solid fa-sun text-yellow-300"></i>';
+            } else {
+                let nightMin = totalMin < 360 ? totalMin + 360 : totalMin - 1080;
+                percent = (nightMin / 720) * 100;
+                celestial.innerHTML = '<i class="fa-solid fa-moon text-blue-100"></i>';
+            }
+            
+            percent = Math.max(0, Math.min(100, percent));
+            celestial.style.left = percent + "%";
+            // আর্ক পজিশন ক্যালকুলেশন (Sin curve)
+            const y = Math.sin((percent / 100) * Math.PI) * 50; 
+            celestial.style.transform = `translateY(${-y}px)`;
+        }
+
+        function updateLiveCountdown() {
+            const now = new Date();
+            const sTime = document.getElementById('suhur-time').innerText;
+            const iTime = document.getElementById('iftar-time').innerText;
+            if (sTime.includes('--')) return;
+
+            const getT = (str) => { 
+                const [h, m] = str.split(':').map(Number); 
+                let d = new Date(); d.setHours(h, m, 0); return d; 
+            };
+            
+            let suhur = getT(sTime);
+            let iftar = getT(iTime);
+            let target, label;
+
+            if (now < suhur) { target = suhur; label = "সেহরি শেষ হতে বাকি"; }
+            else if (now < iftar) { target = iftar; label = "ইফতারের বাকি"; }
+            else { target = new Date(suhur); target.setDate(target.getDate() + 1); label = "পরবর্তী সেহরি"; }
+
+            const diff = target - now;
+            const h = Math.floor(diff / 3600000);
+            const m = Math.floor((diff % 3600000) / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+
+            document.getElementById('countdown-label').innerText = label;
+            document.getElementById('live-timer').innerText = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        function updateNextPrayer(t) {
+            const prayers = [{n:'ফজর',t:t.Fajr},{n:'যোহর',t:t.Dhuhr},{n:'আসর',t:t.Asr},{n:'মাগরিব',t:t.Maghrib},{n:'এশা',t:t.Isha}];
+            let now = new Date();
+            let currentMin = now.getHours() * 60 + now.getMinutes();
+            let next = prayers[0];
+            for (let p of prayers) {
+                let [h, m] = p.t.split(':').map(Number);
+                if ((h * 60 + m) > currentMin) { next = p; break; }
+            }
+            document.getElementById('next-prayer-name').innerText = next.n;
+            document.getElementById('next-prayer-time').innerText = next.t;
+        }
+
+        function switchPage(id) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-' + id).classList.add('active');
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('nav-active'));
+            document.getElementById('nav-' + id).classList.add('nav-active');
+            window.scrollTo(0, 0);
+        }
+
+        let tCount = 0; 
+        function countTasbih() { tCount++; document.getElementById('tasbih-count').innerText = tCount; if ('vibrate' in navigator) navigator.vibrate(50); }
+        function resetTasbih() { tCount = 0; document.getElementById('tasbih-count').innerText = 0; }
+
+        window.onload = init;
+    </script>
+</body>
+  </html>
