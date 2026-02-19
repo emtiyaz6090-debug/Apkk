@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deen - Ramadan App</title>
+<style>
+body{margin:0;font-family:sans-serif;background:#fff;}
+.page{display:none;padding:15px;}
+.page.active{display:block;}
+.card{background:#f1f1f1;padding:15px;margin:10px 0;border-radius:15px;}
+h2,h3{margin:5px 0;}
+input{width:100%;padding:5px;margin:5px 0;}
+button{padding:8px 12px;margin:5px 0;cursor:pointer;}
+#profile-pic{width:80px;height:80px;border-radius:50%;object-fit:cover;}
+</style>
+</head>
+<body>
+
+<!-- Login/Profile -->
+<div id="page-login" class="page active">
+  <h2>Login / Profile</h2>
+  <div id="profile-section" style="display:none;">
+    <img id="profile-pic" src="" alt="Profile"><br>
+    <strong id="profile-username"></strong><br>
+    <button onclick="logout()">Logout</button><br>
+    <input type="file" id="pic-input">
+    <button onclick="changePic()">Change Profile Pic</button>
+  </div>
+  <div id="login-section">
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="login()">Login / Register</button>
+  </div>
+</div>
+
+<!-- Home -->
+<div id="page-home" class="page">
+  <div class="card">
+    <h2>Hijri Date: <span id="hijri-date"></span></h2>
+    <h3 id="ramadan-badge" style="color:red;"></h3>
+    <h3>Location: Lokkhipur</h3>
+  </div>
+  <div class="card">
+    <h3 id="countdown-label">লোড হচ্ছে...</h3>
+    <h2 id="countdown">--:--:--</h2>
+  </div>
+  <div class="card">
+    <h2>Suhur (Fajr): <span id="suhur-time">--:-- --</span></h2>
+    <h2>Iftar (Maghrib): <span id="iftar-time">--:-- --</span></h2>
+  </div>
+  <div class="card">
+    <h2>Next Prayer: <span id="next-prayer-name">--</span></h2>
+    <h2>Time: <span id="next-prayer-time">--:-- --</span></h2>
+  </div>
+</div>
+
+<!-- Tasbih -->
+<div id="page-tasbih" class="page">
+  <h2>Tasbih Counter</h2>
+  <div><span id="tasbih-count">0</span></div>
+  <button onclick="countTasbih()">Increment</button>
+  <button onclick="resetTasbih()">Reset</button>
+</div>
+
+<!-- Doa -->
+<div id="page-doa" class="page">
+  <h2>Doa</h2>
+  <div class="card">
+    <p>ইফতারের দোয়া:</p>
+    <p>اَللَّهُمَّ لَّكَ صُمْتُ وَعَلَى رِزْقِكَ اَفْطَرْتُ</p>
+    <p>Allahumma laka sumtu wa ala rizqika aftartu.</p>
+  </div>
+</div>
+
+<!-- Quran Sample -->
+<div id="page-quran" class="page">
+  <h2>Quran Sample</h2>
+  <div id="surah-list"></div>
+</div>
+
+<!-- Navigation -->
+<div style="position:fixed;bottom:0;width:100%;display:flex;justify-content:space-around;background:#eee;padding:10px;">
+  <button onclick="switchPage('home')">Home</button>
+  <button onclick="switchPage('tasbih')">Tasbih</button>
+  <button onclick="switchPage('doa')">Doa</button>
+  <button onclick="switchPage('quran')">Quran</button>
+</div>
+
+<script>
+// --------- Profile/Login ----------
+function login(){
+  const u=document.getElementById('username').value;
+  const p=document.getElementById('password').value;
+  if(!u||!p){alert('Enter username & password');return;}
+  localStorage.setItem('deen-username',u);
+  localStorage.setItem('deen-password',p);
+  loadProfile();
+}
+function loadProfile(){
+  const u=localStorage.getItem('deen-username');
+  const p=localStorage.getItem('deen-password');
+  const pic=localStorage.getItem('deen-pic')||'https://via.placeholder.com/80';
+  if(u && p){
+    document.getElementById('login-section').style.display='none';
+    document.getElementById('profile-section').style.display='block';
+    document.getElementById('profile-username').innerText=u;
+    document.getElementById('profile-pic').src=pic;
+    switchPage('home');
+  }
+}
+function logout(){
+  localStorage.removeItem('deen-username');
+  localStorage.removeItem('deen-password');
+  document.getElementById('profile-section').style.display='none';
+  document.getElementById('login-section').style.display='block';
+  switchPage('login');
+}
+function changePic(){
+  const file=document.getElementById('pic-input').files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    document.getElementById('profile-pic').src=e.target.result;
+    localStorage.setItem('deen-pic',e.target.result);
+  }
+  reader.readAsDataURL(file);
+}
+loadProfile();
+
+// --------- Prayer Times & Countdown ----------
+const lat=22.8000,lng=90.8333;
+function calcPrayerTimes(){
+  const fajr=5,dhuhr=12,asr=15,maghrib=18,isha=19;
+  return {Fajr:fajr,Dhuhr:dhuhr,Asr:asr,Maghrib:maghrib,Isha:isha};
+}
+function to12(hour){const ampm=hour>=12?'PM':'AM';const h=hour%12||12;return h.toString().padStart(2,'0')+":00 "+ampm;}
+function updateTimes(){
+  const times=calcPrayerTimes();
+  document.getElementById('suhur-time').innerText=to12(times.Fajr);
+  document.getElementById('iftar-time').innerText=to12(times.Maghrib);
+  updateNextPrayer(times);
+}
+function updateNextPrayer(times){
+  const now=new Date(); const currentMin=now.getHours()*60+now.getMinutes();
+  const prayers=[{n:'Fajr',t:times.Fajr},{n:'Dhuhr',t:times.Dhuhr},{n:'Asr',t:times.Asr},{n:'Maghrib',t:times.Maghrib},{n:'Isha',t:times.Isha}];
+  let next=prayers[0];
+  for(let p of prayers){if(p.t*60>currentMin){next=p;break;}}
+  document.getElementById('next-prayer-name').innerText=next.n;
+  document.getElementById('next-prayer-time').innerText=to12(next.t);
+}
+function updateCountdown(){
+  const now=new Date(); const times=calcPrayerTimes();
+  const nextPrayers=[{n:'Fajr',h:times.Fajr},{n:'Dhuhr',h:times.Dhuhr},{n:'Asr',h:times.Asr},{n:'Maghrib',h:times.Maghrib},{n:'Isha',h:times.Isha}];
+  let target=new Date(); let label="";
+  for(let p of nextPrayers){
+    if(now.getHours()<p.h){target.setHours(p.h,0,0);label=p.n==="Fajr"?"সেহরি শেষ হতে বাকি":p.n==="Maghrib"?"ইফতারের বাকি":"পরবর্তী নামাজ";break;}
+  }
+  let diff=target-now; let h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000),s=Math.floor((diff%60000)/1000);
+  document.getElementById('countdown').innerText=h.toString().padStart(2,'0')+":"+m.toString().padStart(2,'0')+":"+s.toString().padStart(2,'0');
+  document.getElementById('countdown-label').innerText=label;
+}
+setInterval(updateCountdown,1000);
+updateTimes();
+
+// --------- Hijri Date & Ramadan Badge ----------
+function getHijri(){
+  const now=new Date();
+  const hijriDay=now.getDate(); // Approximation
+  document.getElementById('hijri-date').innerText=hijriDay+" Ramadan 1447";
+  document.getElementById('ramadan-badge').innerText="Ramadan 1447";
+}
+getHijri();
+
+// --------- Tasbih ----------
+let tCount=0;
+function countTasbih(){tCount++;document.getElementById('tasbih-count').innerText=tCount;if('vibrate' in navigator)navigator.vibrate(50);}
+function resetTasbih(){tCount=0;document.getElementById('tasbih-count').innerText=0;}
+
+// --------- Quran Sample ----------
+const sampleSurahs=[{num:1,name:'Al-Fatihah',arabic:'بسم الله الرحمن الرحيم',bn:'আল্লাহর নামে শুরু করছি'},{num:2,name:'Al-Baqarah',arabic:'الم',bn:'এলিফ, লাম, মীম'}];
+const surahListDiv=document.getElementById('surah-list');
+sampleSurahs.forEach(s=>{const div=document.createElement('div');div.className='card';div.innerHTML=`<strong>${s.num}. ${s.name}</strong><p>${s.arabic}</p><p>${s.bn}</p>`;surahListDiv.appendChild(div);});
+
+// --------- Page Switch ----------
+function switchPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  if(id==='home' && !localStorage.getItem('deen-username')){document.getElementById('page-login').classList.add('active');}
+  else document.getElementById('page-'+id).classList.add('active');
+}
+
+</script>
+</body>
+  </html>
